@@ -45,7 +45,7 @@
       
         <tags>
             
-            <tag> supervisor </tag>
+            <tag> Supervisor </tag>
             
         </tags>
       
@@ -170,7 +170,7 @@
       
         <tags>
             
-            <tag> gunicorn </tag>
+            <tag> Gunicorn </tag>
             
         </tags>
       
@@ -254,6 +254,31 @@
     
     
     <entry>
+      <title>Nginx 部署多个WEB服务</title>
+      <link href="/2018/10/20/Nginxx/"/>
+      <url>/2018/10/20/Nginxx/</url>
+      
+        <content type="html"><![CDATA[<html><head></head><body><h3 id="Centos7"><a href="#Centos7" class="headerlink" title="Centos7"></a>Centos7</h3><p>本文主要以<code>Nginx</code>代理<code>Django</code>项目和<code>gitbook</code>服务为例</p><ol><li><p>修改<code>Nginx</code>的配置文件<code>nginx.conf</code></p><p>我是用<code>wget</code> 源码下载的，不用<code>yum</code>下载的，配置文件有些误差,修改内容如下，主要是去掉<code>server</code>部分，</p><p>在<code>http</code>部分加上你要代理配置文件的地址</p><div class="code-area-wrap"><div class="highlight-tools"><i class="fa fa-angle-down code-expand code-closed" aria-hidden="true"></i><div class="code_lang">Code</div><div class="copy-notice"></div><i class="fa fa-clipboard" aria-hidden="true"></i></div><figure class="highlight plain"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">user root;</span><br><span class="line">worker_processes auto;</span><br><span class="line">error_log logs/error.log  info;;    # 错误日志</span><br><span class="line">pid /usr/local/nginx/logs/nginx.pid;</span><br><span class="line"></span><br><span class="line">events {</span><br><span class="line">    worker_connections 1024;</span><br><span class="line">}</span><br><span class="line"></span><br><span class="line">http {</span><br><span class="line">    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '</span><br><span class="line">                      '$status $body_bytes_sent "$http_referer" '</span><br><span class="line">                      '"$http_user_agent" "$http_x_forwarded_for"';</span><br><span class="line"></span><br><span class="line">    access_log  /var/log/nginx/access.log  main;  # 连接日志</span><br><span class="line"></span><br><span class="line">    sendfile            on;</span><br><span class="line">    tcp_nopush          on;</span><br><span class="line">    tcp_nodelay         on;</span><br><span class="line">    keepalive_timeout   65;</span><br><span class="line">    types_hash_max_size 2048;</span><br><span class="line"></span><br><span class="line">    include             /etc/nginx/mime.types;</span><br><span class="line">    default_type        application/octet-stream;</span><br><span class="line"></span><br><span class="line">    # Load modular configuration files from the /etc/nginx/conf.d directory.</span><br><span class="line">    # See http://nginx.org/en/docs/ngx_core_module.html#include</span><br><span class="line">    # for more information.</span><br><span class="line">    # include /etc/nginx/conf.d/*.conf;</span><br><span class="line">    include /etc/nginxconf/*.conf;   # 自定义地址 可修改</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure></div></li><li><p>在我写服务配置文件的地址，添加我这俩个服务的配置</p><p><code>Django</code>的项目 </p><p><code>djangodemo.conf</code></p><div class="code-area-wrap"><div class="highlight-tools"><i class="fa fa-angle-down code-expand code-closed" aria-hidden="true"></i><div class="code_lang">Code</div><div class="copy-notice"></div><i class="fa fa-clipboard" aria-hidden="true"></i></div><figure class="highlight plain"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">server {</span><br><span class="line">    listen 4000  ;  # 监听的端口</span><br><span class="line">    server_name  build.2222.com; # 域名解析</span><br><span class="line">    charset utf-8;    #</span><br><span class="line">    client_max_body_size 200m;</span><br><span class="line">    access_log  /var/log/nginx/git-access.log;</span><br><span class="line">    error_log  /var/log/nginx/git-err.log;</span><br><span class="line">    location = /favicon.ico { access_log off; log_not_found off; }</span><br><span class="line">    location /static/ {</span><br><span class="line">        #静态文件如js，css的存放目录</span><br><span class="line">        alias /home/myb/MyNotes/MyNotes/_book;</span><br><span class="line">    }</span><br><span class="line">    location / {</span><br><span class="line">        proxy_pass http://0.0.0.1:8000; # 这里要配合启动文件使用</span><br><span class="line">        proxy_redirect     off;</span><br><span class="line">        proxy_set_header   Host                 $http_host;</span><br><span class="line">        proxy_set_header   X-Real-IP            $remote_addr;</span><br><span class="line">        proxy_set_header   X-Forwarded-For      $proxy_add_x_forwarded_for;</span><br><span class="line">        proxy_set_header   X-Forwarded-Proto    $scheme;</span><br><span class="line">    }</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure></div><p><code>gitbook</code></p><p><code>gitbook.conf</code></p><div class="code-area-wrap"><div class="highlight-tools"><i class="fa fa-angle-down code-expand code-closed" aria-hidden="true"></i><div class="code_lang">Code</div><div class="copy-notice"></div><i class="fa fa-clipboard" aria-hidden="true"></i></div><figure class="highlight plain"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">server {</span><br><span class="line">        listen       4000;</span><br><span class="line">        server_name  localhost;</span><br><span class="line"></span><br><span class="line">        #charset koi8-r;</span><br><span class="line"></span><br><span class="line">        #access_log  logs/host.access.log  main;</span><br><span class="line"></span><br><span class="line">        location / {</span><br><span class="line">            root   /home/roc/mygitbook/_book;  # 我gitbook静态网页的地址</span><br><span class="line">            index  index.html index.htm;</span><br><span class="line">        }</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure></div></li><li><p>重启<code>Nginx</code></p><div class="code-area-wrap"><div class="highlight-tools"><i class="fa fa-angle-down code-expand code-closed" aria-hidden="true"></i><div class="code_lang">Code</div><div class="copy-notice"></div><i class="fa fa-clipboard" aria-hidden="true"></i></div><figure class="highlight plain"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nginx -s reload</span><br></pre></td></tr></tbody></table></figure></div><p>就可以访问我的俩个网址</p><p>在浏览器上输入如下地址 </p><p><code>Django</code>项目 访问网址 <code>IP:8000</code></p><p><code>gitbook</code>  访问网址 <code>IP:4000</code>  </p><p>IP——>Centos 服务器的IP地址</p><p>​</p></li></ol></body></html>]]></content>
+      
+      
+      <categories>
+          
+          <category> CentOS7 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Nginx </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>MySQL的一些错误日志</title>
       <link href="/2018/08/26/mysqlerr/"/>
       <url>/2018/08/26/mysqlerr/</url>
@@ -270,7 +295,7 @@
       
         <tags>
             
-            <tag> mysql </tag>
+            <tag> MySQL </tag>
             
         </tags>
       
@@ -295,7 +320,7 @@
       
         <tags>
             
-            <tag> mysql firewall </tag>
+            <tag> MySQL firewall </tag>
             
         </tags>
       
@@ -320,7 +345,7 @@
       
         <tags>
             
-            <tag> mysql </tag>
+            <tag> MySQL </tag>
             
         </tags>
       
@@ -420,7 +445,7 @@
       
         <tags>
             
-            <tag> CentOS7-Redis </tag>
+            <tag> Redis </tag>
             
         </tags>
       
@@ -445,7 +470,7 @@
       
         <tags>
             
-            <tag> gitbook </tag>
+            <tag> GitBook </tag>
             
         </tags>
       
@@ -529,31 +554,6 @@
     
     
     <entry>
-      <title>Nginx 部署多个WEB服务</title>
-      <link href="/2017/10/20/Nginxx/"/>
-      <url>/2017/10/20/Nginxx/</url>
-      
-        <content type="html"><![CDATA[<html><head></head><body><h3 id="Centos7"><a href="#Centos7" class="headerlink" title="Centos7"></a>Centos7</h3><p>本文主要以<code>Nginx</code>代理<code>Django</code>项目和<code>gitbook</code>服务为例</p><ol><li><p>修改<code>Nginx</code>的配置文件<code>nginx.conf</code></p><p>我是用<code>wget</code> 源码下载的，不用<code>yum</code>下载的，配置文件有些误差,修改内容如下，主要是去掉<code>server</code>部分，</p><p>在<code>http</code>部分加上你要代理配置文件的地址</p><div class="code-area-wrap"><div class="highlight-tools"><i class="fa fa-angle-down code-expand code-closed" aria-hidden="true"></i><div class="code_lang">Code</div><div class="copy-notice"></div><i class="fa fa-clipboard" aria-hidden="true"></i></div><figure class="highlight plain"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">user root;</span><br><span class="line">worker_processes auto;</span><br><span class="line">error_log logs/error.log  info;;    # 错误日志</span><br><span class="line">pid /usr/local/nginx/logs/nginx.pid;</span><br><span class="line"></span><br><span class="line">events {</span><br><span class="line">    worker_connections 1024;</span><br><span class="line">}</span><br><span class="line"></span><br><span class="line">http {</span><br><span class="line">    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '</span><br><span class="line">                      '$status $body_bytes_sent "$http_referer" '</span><br><span class="line">                      '"$http_user_agent" "$http_x_forwarded_for"';</span><br><span class="line"></span><br><span class="line">    access_log  /var/log/nginx/access.log  main;  # 连接日志</span><br><span class="line"></span><br><span class="line">    sendfile            on;</span><br><span class="line">    tcp_nopush          on;</span><br><span class="line">    tcp_nodelay         on;</span><br><span class="line">    keepalive_timeout   65;</span><br><span class="line">    types_hash_max_size 2048;</span><br><span class="line"></span><br><span class="line">    include             /etc/nginx/mime.types;</span><br><span class="line">    default_type        application/octet-stream;</span><br><span class="line"></span><br><span class="line">    # Load modular configuration files from the /etc/nginx/conf.d directory.</span><br><span class="line">    # See http://nginx.org/en/docs/ngx_core_module.html#include</span><br><span class="line">    # for more information.</span><br><span class="line">    # include /etc/nginx/conf.d/*.conf;</span><br><span class="line">    include /etc/nginxconf/*.conf;   # 自定义地址 可修改</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure></div></li><li><p>在我写服务配置文件的地址，添加我这俩个服务的配置</p><p><code>Django</code>的项目 </p><p><code>djangodemo.conf</code></p><div class="code-area-wrap"><div class="highlight-tools"><i class="fa fa-angle-down code-expand code-closed" aria-hidden="true"></i><div class="code_lang">Code</div><div class="copy-notice"></div><i class="fa fa-clipboard" aria-hidden="true"></i></div><figure class="highlight plain"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">server {</span><br><span class="line">    listen 4000  ;  # 监听的端口</span><br><span class="line">    server_name  build.2222.com; # 域名解析</span><br><span class="line">    charset utf-8;    #</span><br><span class="line">    client_max_body_size 200m;</span><br><span class="line">    access_log  /var/log/nginx/git-access.log;</span><br><span class="line">    error_log  /var/log/nginx/git-err.log;</span><br><span class="line">    location = /favicon.ico { access_log off; log_not_found off; }</span><br><span class="line">    location /static/ {</span><br><span class="line">        #静态文件如js，css的存放目录</span><br><span class="line">        alias /home/myb/MyNotes/MyNotes/_book;</span><br><span class="line">    }</span><br><span class="line">    location / {</span><br><span class="line">        proxy_pass http://0.0.0.1:8000; # 这里要配合启动文件使用</span><br><span class="line">        proxy_redirect     off;</span><br><span class="line">        proxy_set_header   Host                 $http_host;</span><br><span class="line">        proxy_set_header   X-Real-IP            $remote_addr;</span><br><span class="line">        proxy_set_header   X-Forwarded-For      $proxy_add_x_forwarded_for;</span><br><span class="line">        proxy_set_header   X-Forwarded-Proto    $scheme;</span><br><span class="line">    }</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure></div><p><code>gitbook</code></p><p><code>gitbook.conf</code></p><div class="code-area-wrap"><div class="highlight-tools"><i class="fa fa-angle-down code-expand code-closed" aria-hidden="true"></i><div class="code_lang">Code</div><div class="copy-notice"></div><i class="fa fa-clipboard" aria-hidden="true"></i></div><figure class="highlight plain"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">server {</span><br><span class="line">        listen       4000;</span><br><span class="line">        server_name  localhost;</span><br><span class="line"></span><br><span class="line">        #charset koi8-r;</span><br><span class="line"></span><br><span class="line">        #access_log  logs/host.access.log  main;</span><br><span class="line"></span><br><span class="line">        location / {</span><br><span class="line">            root   /home/roc/mygitbook/_book;  # 我gitbook静态网页的地址</span><br><span class="line">            index  index.html index.htm;</span><br><span class="line">        }</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure></div></li><li><p>重启<code>Nginx</code></p><div class="code-area-wrap"><div class="highlight-tools"><i class="fa fa-angle-down code-expand code-closed" aria-hidden="true"></i><div class="code_lang">Code</div><div class="copy-notice"></div><i class="fa fa-clipboard" aria-hidden="true"></i></div><figure class="highlight plain"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nginx -s reload</span><br></pre></td></tr></tbody></table></figure></div><p>就可以访问我的俩个网址</p><p>在浏览器上输入如下地址 </p><p><code>Django</code>项目 访问网址 <code>IP:8000</code></p><p><code>gitbook</code>  访问网址 <code>IP:4000</code>  </p><p>IP——>Centos 服务器的IP地址</p><p>​</p></li></ol></body></html>]]></content>
-      
-      
-      <categories>
-          
-          <category> CentOS7 </category>
-          
-      </categories>
-      
-      
-        <tags>
-            
-            <tag> Nginx </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
       <title>git相关命令</title>
       <link href="/2017/10/20/git/"/>
       <url>/2017/10/20/git/</url>
@@ -570,7 +570,7 @@
       
         <tags>
             
-            <tag> git相关命令 </tag>
+            <tag> Git相关命令 </tag>
             
         </tags>
       
@@ -588,14 +588,14 @@
       
       <categories>
           
-          <category> git </category>
+          <category> Git </category>
           
       </categories>
       
       
         <tags>
             
-            <tag> git仓库 </tag>
+            <tag> Git仓库 </tag>
             
         </tags>
       
@@ -638,14 +638,14 @@
       
       <categories>
           
-          <category> ssh-config </category>
+          <category> SSH </category>
           
       </categories>
       
       
         <tags>
             
-            <tag> config </tag>
+            <tag> SSH-config </tag>
             
         </tags>
       
@@ -654,7 +654,7 @@
     
     
     <entry>
-      <title>ssh</title>
+      <title>SSH</title>
       <link href="/2017/10/16/ssh/"/>
       <url>/2017/10/16/ssh/</url>
       
@@ -663,14 +663,14 @@
       
       <categories>
           
-          <category> ssh </category>
+          <category> SSH </category>
           
       </categories>
       
       
         <tags>
             
-            <tag> ssh </tag>
+            <tag> SSH </tag>
             
         </tags>
       
